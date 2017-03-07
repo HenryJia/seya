@@ -106,9 +106,9 @@ class NeuralTuringMachine(Recurrent):
             kwargs['input_shape'] = (self.input_length, self.input_dim)
         super(NeuralTuringMachine, self).__init__(**kwargs)
 
-    def build(self):
-        input_leng, input_dim = self.input_shape[1:]
-        self.input = T.tensor3()
+    def build(self, input_shape):
+        input_leng, input_dim = input_shape[1:]
+        #self.input = T.tensor3()
 
         if self.inner_rnn == 'gru':
             self.rnn = GRU(
@@ -116,18 +116,19 @@ class NeuralTuringMachine(Recurrent):
                 input_dim=input_dim+self.m_length,
                 input_length=input_leng,
                 output_dim=self.output_dim, init=self.init,
+                consume_less = 'gpu',
                 inner_init=self.inner_init)
         elif self.inner_rnn == 'lstm':
             self.rnn = LSTM(
                 input_dim=input_dim+self.m_length,
                 input_length=input_leng,
                 output_dim=self.output_dim, init=self.init,
-                forget_bias_init='zero',
+                forget_bias_init='zero', consume_less = 'gpu',
                 inner_init=self.inner_init)
         else:
             raise ValueError('this inner_rnn is not implemented yet.')
 
-        self.rnn.build()
+        self.rnn.build((None,input_leng,input_dim+self.m_length))
 
         # initial memory, state, read and write vecotrs
         self.M = theano.shared((.001*np.ones((1,)).astype(floatX)))
@@ -169,7 +170,8 @@ class NeuralTuringMachine(Recurrent):
             self.W_s_write, self.b_s_write,
             self.W_c_write, self.b_c_write,
             self.M,
-            self.init_h, self.init_wr, self.init_ww]
+            #self.init_h,
+            self.init_wr, self.init_ww]
 
         if self.inner_rnn == 'lstm':
             self.init_c = K.zeros((self.output_dim))
